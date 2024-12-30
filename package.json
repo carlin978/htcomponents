@@ -1,0 +1,38 @@
+{
+	"name": "htcomponents",
+	"description": "Simple Static HTML Components",
+	"version": "0.0.0",
+	"author": "carlin978",
+	"bin": {
+		"htcomponents": "bin/htcomponents.js"
+	},
+	"bugs": "https://github.com/carlin978/htcomponents/issues",
+	"engines": {
+		"node": ">=18.0.0"
+	},
+	"files": [
+		"/dist"
+	],
+	"types": "types/index.d.ts",
+	"main": "dist/index.ts",
+	"homepage": "https://github.com/carlin978/htcomponents",
+	"keywords": [
+		"HTML",
+		"components",
+		"static"
+	],
+	"license": "MIT",
+	"type": "module",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/carlin978/htcomponents"
+	},
+	"scripts": {
+		"build": "tsc -b"
+	},
+	"devDependencies": {
+		"@types/node": "^22.10.2",
+		"prettier": "^3.4.2",
+		"typescript": "^5.7.2"
+	}
+}
