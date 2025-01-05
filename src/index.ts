@@ -60,7 +60,7 @@ export async function ensureDirs(config: Config) {
 	}
 }
 
-async function fileMapper(file: string, fn: (file: string, srcDir: string) => void, srcDir: string) {
+async function fileMapper(file: string, fn: (file: string, srcDir: string) => Promise<void>, srcDir: string) {
 	const filePath = path.join(srcDir, file);
 	const fileStats = await fs.lstat(filePath);
 	if (fileStats.isDirectory()) {
@@ -69,7 +69,7 @@ async function fileMapper(file: string, fn: (file: string, srcDir: string) => vo
 			await fileMapper(f, fn, path.join(srcDir, file));
 		}
 	} else {
-		fn(file, srcDir);
+		await fn(file, srcDir);
 	}
 }
 
@@ -78,8 +78,13 @@ export async function recreateFileStructure(config: Config) {
 	for (const file of srcDirContents) {
 		await fileMapper(
 			file,
-			(file, srcDir) => {
-				console.log(path.join(srcDir, file));
+			async (file, srcDir) => {
+				let pathSrc = path.relative(config.srcDir, srcDir);
+				let pathOut = path.join(config.outDir, pathSrc);
+				if (!await fileExists(pathOut)) {
+					await fs.mkdir(pathOut, { recursive: true });
+				}
+				await fs.writeFile(path.join(pathOut, file), '', { encoding: 'utf8' });
 			},
 			config.srcDir
 		);

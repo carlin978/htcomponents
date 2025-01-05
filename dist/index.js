@@ -49,14 +49,19 @@ async function fileMapper(file, fn, srcDir) {
         }
     }
     else {
-        fn(file, srcDir);
+        await fn(file, srcDir);
     }
 }
 export async function recreateFileStructure(config) {
     let srcDirContents = await fs.readdir(config.srcDir);
     for (const file of srcDirContents) {
-        await fileMapper(file, (file, srcDir) => {
-            console.log(path.join(srcDir, file));
+        await fileMapper(file, async (file, srcDir) => {
+            let pathSrc = path.relative(config.srcDir, srcDir);
+            let pathOut = path.join(config.outDir, pathSrc);
+            if (!await fileExists(pathOut)) {
+                await fs.mkdir(pathOut, { recursive: true });
+            }
+            await fs.writeFile(path.join(pathOut, file), '', { encoding: 'utf8' });
         }, config.srcDir);
     }
 }
