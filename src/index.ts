@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 export const CONFIG_FILE = 'htcomponents.json';
-export const ACCEPTED_EXTENSIONS = Object.freeze(['html']);
+export const ACCEPTED_EXTENSIONS = Object.freeze(['html', 'htm']);
 
 export interface ConfigJson {
 	srcDir: string;
@@ -15,7 +15,7 @@ export class Config {
 	srcDir: string;
 	outDir: string;
 	componentDir: string;
-	additionalExtensions: string[];
+	acceptedExtensions: string[];
 
 	static readonly dirKeys = Object.freeze(['srcDir', 'outDir', 'componentDir']);
 
@@ -27,7 +27,7 @@ export class Config {
 		this.srcDir = Config.absolutifyPath(srcDir);
 		this.outDir = Config.absolutifyPath(outDir);
 		this.componentDir = Config.absolutifyPath(componentDir);
-		this.additionalExtensions = [...ACCEPTED_EXTENSIONS, ...additionalExtensions];
+		this.acceptedExtensions = [...ACCEPTED_EXTENSIONS, ...additionalExtensions];
 	}
 
 	static async load(): Promise<Config> {
@@ -36,7 +36,7 @@ export class Config {
 		let parsedConfig = JSON.parse(file);
 
 		if (this.isValidJson(parsedConfig)) {
-			return new Config(parsedConfig.srcDir, parsedConfig.outDir, parsedConfig.componentDir);
+			return new Config(parsedConfig.srcDir, parsedConfig.outDir, parsedConfig.componentDir, parsedConfig.additionalExtensions);
 		} else {
 			throw new TypeError('Invalid Config');
 		}
@@ -98,7 +98,9 @@ export async function recreateFileStructure(config: Config) {
 					await fs.mkdir(pathOut, { recursive: true });
 				}
 
-				await fs.writeFile(path.join(pathOut, file), '', { encoding: 'utf8' });
+				if (config.acceptedExtensions.includes(path.extname(file).slice(1))) {
+					await fs.writeFile(path.join(pathOut, file), '', { encoding: 'utf8' });
+				}
 			},
 			config.srcDir
 		);
