@@ -1,61 +1,74 @@
-import fs from "node:fs/promises";
-import path from "node:path";
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
-export interface Config extends Record<string, string> {
-	srcDir: string,
-	outDir: string,
-	componentDir: string
+export const CONFIG_FILE = 'htcomponents.json';
+export const ACCEPTED_EXTENSIONS = Object.freeze(['html']);
+
+export interface ConfigJson {
+	srcDir: string;
+	outDir: string;
+	componentDir: string;
+	additionalExtensions?: string[];
 }
 
-export const configKeys = Object.freeze([
-	"srcDir",
-	"outDir",
-	"componentDir"
-]);
+export class Config {
+	srcDir: string;
+	outDir: string;
+	componentDir: string;
+	additionalExtensions: string[];
 
-/**
- * Checks validity of Config
- */
-function isValidConfig(config: any): config is Config {
-	return typeof config === "object" && configKeys.every(key => key in config && typeof config[key] === "string");
-}
+	static readonly dirKeys = Object.freeze(['srcDir', 'outDir', 'componentDir']);
 
-export async function loadConfig(): Promise<Config> {
-	let filePath = path.join(process.cwd(), "htcomponents.json");
+	static absolutifyPath(configPath: string): string {
+		return path.isAbsolute(configPath) ? configPath : path.join(process.cwd(), configPath);
+	}
 
-	let file = await fs.readFile(filePath, { encoding: "utf8" });
-	let parsedConfig = JSON.parse(file);
-	if (isValidConfig(parsedConfig)) {
-		let config: Record<string, string> = {};
-		configKeys.forEach(key => {
-			config[key] = path.isAbsolute(parsedConfig[key]) ? parsedConfig[key] : path.join(process.cwd(), parsedConfig[key]);
-		});
-		return config as Config;
-	} else {
-		throw new TypeError("Invalid Config");
+	constructor(srcDir: string, outDir: string, componentDir: string, additionalExtensions: string[] = []) {
+		this.srcDir = Config.absolutifyPath(srcDir);
+		this.outDir = Config.absolutifyPath(outDir);
+		this.componentDir = Config.absolutifyPath(componentDir);
+		this.additionalExtensions = [...ACCEPTED_EXTENSIONS, ...additionalExtensions];
+	}
+
+	static async load(): Promise<Config> {
+		let file = await fs.readFile(path.join(process.cwd(), CONFIG_FILE), { encoding: 'utf8' });
+
+		let parsedConfig = JSON.parse(file);
+
+		if (this.isValidJson(parsedConfig)) {
+			return new Config(parsedConfig.srcDir, parsedConfig.outDir, parsedConfig.componentDir);
+		} else {
+			throw new TypeError('Invalid Config');
+		}
+	}
+
+	static isValidJson(config: any): config is ConfigJson {
+		return (
+			typeof config === 'object' &&
+			this.dirKeys.every(key => key in config && typeof config[key] === 'string') &&
+			(!('additionalExtensions' in config) ||
+				(Array.isArray(config['additionalExtensions']) && config['additionalExtensions'].every(ext => typeof ext === 'string')))
+		);
 	}
 }
 
-/**
- * Check if file exists
- */
 const fileExists = async (path: string) => !!(await fs.stat(path).catch(e => false));
 
-/**
- * Check file access
- */
 const checkFileAccess = async (path: string, access: number) => !(await fs.access(path, access).catch(e => true));
 
 export async function ensureDirs(config: Config) {
-	for (let i = 0; i < configKeys.length; i++) {
-		const key = configKeys[i];
-		if (await fileExists(config[key])) {
+	for (let i = 0; i < Config.dirKeys.length; i++) {
+		const key = Config.dirKeys[i] as keyof Config;
+		const dir = config[key] as string;
+
+		if (await fileExists(dir)) {
 			const access = i === 0 ? fs.constants.R_OK : fs.constants.R_OK | fs.constants.W_OK;
-			if (!await checkFileAccess(config[key], access)) {
+
+			if (!(await checkFileAccess(dir, access))) {
 				throw new Error(`No Access to ${key}`);
 			}
 		} else {
-			fs.mkdir(config[key], { recursive: true });
+			fs.mkdir(dir, { recursive: true });
 		}
 	}
 }
@@ -79,11 +92,12 @@ export async function recreateFileStructure(config: Config) {
 		await fileMapper(
 			file,
 			async (file, srcDir) => {
-				let pathSrc = path.relative(config.srcDir, srcDir);
-				let pathOut = path.join(config.outDir, pathSrc);
-				if (!await fileExists(pathOut)) {
+				const pathSrc = path.relative(config.srcDir, srcDir);
+				const pathOut = path.join(config.outDir, pathSrc);
+				if (!(await fileExists(pathOut))) {
 					await fs.mkdir(pathOut, { recursive: true });
 				}
+
 				await fs.writeFile(path.join(pathOut, file), '', { encoding: 'utf8' });
 			},
 			config.srcDir

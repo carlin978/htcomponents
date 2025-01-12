@@ -1,7 +1,7 @@
-import { ensureDirs, loadConfig, recreateFileStructure } from "./index.ts";
+import { ensureDirs, recreateFileStructure, Config } from "./index.ts";
 
 try {
-	let config = await loadConfig();
+	let config = await Config.load();
 	await ensureDirs(config);
 	await recreateFileStructure(config);
 

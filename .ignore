@@ -1,5 +1,6 @@
 package-lock.json
 .nvmrc
+.prettierrc
 dist/
 types/
 test/

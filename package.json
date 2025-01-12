@@ -28,7 +28,8 @@
 		"url": "git+https://github.com/carlin978/htcomponents"
 	},
 	"scripts": {
-		"build": "tsc -b"
+		"build": "tsc -b",
+		"build-watch": "tsc -b -w"
 	},
 	"devDependencies": {
 		"@types/node": "^22.10.2",
