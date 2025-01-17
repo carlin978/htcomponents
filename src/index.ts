@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+export * as parser from './parser';
 export const CONFIG_FILE = 'htcomponents.json';
 export const ACCEPTED_EXTENSIONS = Object.freeze(['html', 'htm']);
 
