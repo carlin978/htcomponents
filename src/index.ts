@@ -1,7 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import * as parser from './parser.ts';
 
-export * as parser from './parser';
+export * as parser from './parser.ts';
 export const CONFIG_FILE = 'htcomponents.json';
 export const ACCEPTED_EXTENSIONS = Object.freeze(['html', 'htm']);
 
@@ -100,7 +101,7 @@ export async function recreateFileStructure(config: Config) {
 				}
 
 				if (config.acceptedExtensions.includes(path.extname(file).slice(1))) {
-					await fs.writeFile(path.join(pathOut, file), '', { encoding: 'utf8' });
+					await parser.parse(config, path.join(pathSrc, file));
 				}
 			},
 			config.srcDir
